@@ -53,6 +53,37 @@ db.run(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   )
 `);
+// Create a default test account for project review
+const createTestAccount = async () => {
+  const testUsername = "testuser";
+  const testEmail = "test@example.com";
+  const testPassword = "test123";
+
+  db.get("SELECT * FROM users WHERE email = ?", [testEmail], async (err, user) => {
+    if (err) {
+      console.log("Error checking test account:", err);
+      return;
+    }
+
+    if (!user) {
+      const hashedPassword = await bcrypt.hash(testPassword, 10);
+
+      db.run(
+        "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+        [testUsername, testEmail, hashedPassword],
+        function (err) {
+          if (err) {
+            console.log("Error creating test account:", err);
+          } else {
+            console.log("Test account created: test@example.com / test123");
+          }
+        }
+      );
+    }
+  });
+};
+
+createTestAccount();
 
 // Gemini setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
