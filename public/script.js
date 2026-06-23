@@ -119,24 +119,47 @@ generateBtn.addEventListener("click", async function () {
 
   generatedCaption.textContent = "Generating...";
   dashboardMessage.textContent = "";
+  generateBtn.disabled = true;
+  generateBtn.textContent = "Generating...";
 
-  const response = await fetch("/api/generate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ prompt })
-  });
+  try {
+    let response = await fetch("/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ prompt })
+    });
 
-  const data = await response.json();
+    let data = await response.json();
 
-  if (data.success) {
-    currentCaption = data.caption;
-    generatedCaption.textContent = data.caption;
-  } else {
+    if (!data.success) {
+      response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ prompt })
+      });
+
+      data = await response.json();
+    }
+
+    if (data.success) {
+      currentCaption = data.caption;
+      generatedCaption.textContent = data.caption;
+      dashboardMessage.textContent = "";
+    } else {
+      generatedCaption.textContent = "Something went wrong.";
+      dashboardMessage.textContent = "The AI request failed. Please try again.";
+    }
+  } catch (error) {
     generatedCaption.textContent = "Something went wrong.";
-    dashboardMessage.textContent = data.message;
+    dashboardMessage.textContent = "The AI request failed. Please try again.";
   }
+
+  generateBtn.disabled = false;
+  generateBtn.textContent = "Generate Caption";
 });
 
 saveCaptionBtn.addEventListener("click", async function () {
