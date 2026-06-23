@@ -33,28 +33,9 @@ app.use(
   })
 );
 
-// Create tables
-db.run(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
-  )
-`);
 
-db.run(`
-  CREATE TABLE IF NOT EXISTS captions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    prompt TEXT NOT NULL,
-    generated_text TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  )
-`);
 // Create a default test account for project review
-const createTestAccount = async () => {
+function createTestAccount() {
   const testUsername = "testuser";
   const testEmail = "test@example.com";
   const testPassword = "test123";
@@ -79,11 +60,43 @@ const createTestAccount = async () => {
           }
         }
       );
+    } else {
+      console.log("Test account already exists.");
     }
   });
-};
+}
 
-createTestAccount();
+// Create tables first, then create the test account
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL
+    )
+  `);
+
+  db.run(
+    `
+    CREATE TABLE IF NOT EXISTS captions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      prompt TEXT NOT NULL,
+      generated_text TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `,
+    function (err) {
+      if (err) {
+        console.log("Error creating captions table:", err);
+      } else {
+        createTestAccount();
+      }
+    }
+  );
+});
 
 // Gemini setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
